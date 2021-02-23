@@ -1,4 +1,4 @@
-global class TrainingWeather implements Database.Batchable<sObject>, Database.AllowsCallouts {
+global class WeatherBatch implements Database.Batchable<sObject>, Database.AllowsCallouts {
 
 global Database.QueryLocator start(Database.BatchableContext bc){
     String query = 'SELECT Id, BillingCity, WeatherCity__c, CurrentWeatherDescription__c, CurrentWeatherTemp__c, CurrentWeatherIcon__c, ForecastWeatherDescription__c, ForecastWeatherTemp__c, ForecastWeatherIcon__c FROM Account WHERE BillingCity != null';
