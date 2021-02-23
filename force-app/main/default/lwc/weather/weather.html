@@ -1,0 +1,19 @@
+<template>
+    <lightning-card>
+       <div class="weather-icon">
+       <p><img src={currentIcon} width=150/></p>
+   </div>
+   <div class="temperature">
+    <div class="city" > <p>{getCityName}</p></div>
+      <div class=currentDesc> <p>{getCurrentDesc}</p> </div>
+   <p>{celciusCurrentTemp}</p>
+   </div>
+   <div id="tomorrow-weather">
+  <div class="text"> Next day
+   <img src={forecastIcon} width=50/>
+   {getForecastDesc}
+   {celciusForecastTemp}</div>
+   </div> 
+       <lightning-map map-markers={mapMarkers} zoom-level="12"></lightning-map>
+    </lightning-card> 
+</template>
