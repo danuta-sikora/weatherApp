@@ -9,10 +9,8 @@ List <Event> eventsWithAcc = [SELECT Id,subject,What.Type,whatId FROM Event
     List<Id> accountsIdTodayEvents = EventManager.getRelatedAccountsByEventDate (eventsWithAcc, todayDate);
     List<Id> accountsIdTomorrowEvents = EventManager.getRelatedAccountsByEventDate (eventsWithAcc, tomorrowDate);
    
-    List<Account> allAccounts = [SELECT Id, SalesRepId__c, CurrentWeatherDescription__c, CurrentWeatherTemp__c, ForecastWeatherDescription__c,ForecastWeatherTemp__c FROM Account];
-
-    List<Account> accountsDetailsWithTodayEvents = AccountManager.getAccountsDetails (allAccounts, accountsIdTodayEvents);
-    List<Account> accountsDetailsWithTomorrowEvents = AccountManager.getAccountsDetails (allAccounts, accountsIdTomorrowEvents);
+    List<Account> accountsDetailsWithTodayEvents = [SELECT Id, SalesRepId__c, CurrentWeatherDescription__c, CurrentWeatherTemp__c, ForecastWeatherDescription__c,ForecastWeatherTemp__c FROM Account WHERE Id IN :accountsIdTodayEvents];
+    List<Account> accountsDetailsWithTomorrowEvents = [SELECT Id, SalesRepId__c, CurrentWeatherDescription__c, CurrentWeatherTemp__c, ForecastWeatherDescription__c,ForecastWeatherTemp__c FROM Account WHERE Id IN :accountsIdTomorrowEvents];
 
     for (Account a : accountsDetailsWithTodayEvents){
         if((a.CurrentWeatherDescription__c.contains('thunderstorm') || a.CurrentWeatherDescription__c.contains('heavy')) || (a.CurrentWeatherTemp__c > 30 || a.CurrentWeatherTemp__c <-10)){
