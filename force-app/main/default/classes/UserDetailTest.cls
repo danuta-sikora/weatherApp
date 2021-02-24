@@ -16,7 +16,11 @@ public class UserDetailTest {
         user.LanguageLocaleKey = usr.LanguageLocaleKey;
         
         insert user;
-        String usrEmail = UserDetail.getUserEmailById(user.Id);
-        System.assertEquals('smith@gmail.com', user.Email);
+        Account ac = new Account(Name='test');
+       
+        String email = UserDetail.getUserEmailById(user.Id);
+        String emptyEmail = UserDetail.getUserEmailById(ac.Id);
+        System.assertEquals('smith@gmail.com', email);
+        System.assertEquals(' ', emptyEmail);
     }
 }

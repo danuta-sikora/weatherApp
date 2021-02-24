@@ -15,7 +15,7 @@ List <Event> eventsWithAcc = [SELECT Id,subject,What.Type,whatId FROM Event
     for (Account a : accountsDetailsWithTodayEvents){
         if((a.CurrentWeatherDescription__c.contains('thunderstorm') || a.CurrentWeatherDescription__c.contains('heavy')) || (a.CurrentWeatherTemp__c > 30 || a.CurrentWeatherTemp__c <-10)){
             salesRepId = a.SalesRepId__c;
-           salesRepEmail = UserDetail.getUserEmailById(salesRepId);
+            salesRepEmail = UserDetail.getUserEmailById(salesRepId);
             EmailManager.sendMail (salesRepEmail, 'Weather warning', 'Please be careful with your today meeting with client: ' +a.Name + 'Bad weather conditions may occurs');
             
         }
@@ -24,7 +24,7 @@ List <Event> eventsWithAcc = [SELECT Id,subject,What.Type,whatId FROM Event
     for(Account c : accountsDetailsWithTomorrowEvents){
         if((c.ForecastWeatherDescription__c.contains('thunderstorm') || c.ForecastWeatherDescription__c.contains('heavy')) || (c.ForecastWeatherTemp__c >30 || c.ForecastWeatherTemp__c <-10)){
             salesRepId = c.SalesRepId__c;
-           salesRepEmail = UserDetail.getUserEmailById(salesRepId);
+          salesRepEmail = UserDetail.getUserEmailById(salesRepId);
             EmailManager.sendMail (salesRepEmail, 'Weather warning', 'Please be careful with your tomorrow meeting with client: ' +c.Name + 'Bad weather conditions may occurs');
         }
         
