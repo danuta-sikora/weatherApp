@@ -6,7 +6,6 @@ global Database.QueryLocator start(Database.BatchableContext bc){
 }
 
 global void execute(Database.BatchableContext bc, List<Account> scope) {
-    String endpoint = 'https://community-open-weather-map.p.rapidapi.com/forecast?q=';
     String location = '';
     String cityName;
     Decimal currentTemp;
@@ -37,9 +36,9 @@ global void execute(Database.BatchableContext bc, List<Account> scope) {
         try {
         HttpRequest request = new HttpRequest();
             Http http = new Http();
-            request.setEndpoint(endpoint+location);
-            request.setHeader('x-rapidapi-key', 'd236ea91ccmsh085491ecd4bf974p168e15jsn5bfbd8e9f3fa');
-            request.setHeader('x-rapidapi-host', 'community-open-weather-map.p.rapidapi.com');
+            request.setEndpoint('callout:forecast_endpoint'+location);
+            request.setHeader('x-rapidapi-key', '{!$Credential.Password}');
+            request.setHeader('x-rapidapi-host', '{!$Credential.UserName}');
             request.setMethod('GET');
             HttpResponse response = http.send(request);
 
