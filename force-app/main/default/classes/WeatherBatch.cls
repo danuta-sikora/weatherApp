@@ -1,12 +1,12 @@
 public class WeatherBatch implements Database.Batchable<sObject>, Database.Stateful, Database.AllowsCallouts {
-private final String query = 'SELECT Id, BillingCity, WeatherCity__c, CurrentWeatherDescription__c, CurrentWeatherTemp__c, CurrentWeatherIcon__c, ForecastWeatherDescription__c, ForecastWeatherTemp__c, ForecastWeatherIcon__c FROM Account WHERE BillingCity != null AND isUpdatedToday=false LIMIT 10';
+private final String query = 'SELECT Id, BillingCity, WeatherCity__c, CurrentWeatherDescription__c, CurrentWeatherTemp__c, CurrentWeatherIcon__c, ForecastWeatherDescription__c, ForecastWeatherTemp__c, ForecastWeatherIcon__c FROM Account WHERE BillingCity != null AND isUpdatedToday=\"false"\ LIMIT 10';
 
-global Database.QueryLocator start(Database.BatchableContext bc){
+public Database.QueryLocator start(Database.BatchableContext bc){
   
     return Database.getQueryLocator(query);
 }
 
-global void execute(Database.BatchableContext bc, List<Account> scope) {
+public void execute(Database.BatchableContext bc, List<Account> scope) {
     String location = '';
     String cityName;
     Decimal currentTemp;
@@ -43,31 +43,13 @@ global void execute(Database.BatchableContext bc, List<Account> scope) {
             request.setMethod('GET');
             HttpResponse response = http.send(request);
 
-Map<String,Object> weatherData = (Map<String,Object>) JSON.deserializeUntyped(response.getBody());
+JSONParser parser = JSON.createParser(response.getBody());
 
-List<Object> dataList = (List<Object>) weatherData.get('list');
-Map<String,Object> currentWeatherData = (Map<String,Object>) dataList[2];
+JSON2Apex jsonResult = new JSON2Apex (parser);
+cityName = jsonResult.city.name;
 
-Map<String,Object> cities = (Map<String,Object>) weatherData.get('city');
-cityName  = (String)cities.get('name');
-
-Map<String,Object> currentMainData = (Map<String,Object>) currentWeatherData.get('main');
-currentTemp = (Decimal) currentMainData.get('temp');
-
-List<Object> currentWeath = (List<Object>) currentWeatherData.get('weather');
-Map<String,Object> currentDesc = (Map<String,Object>) currentWeath[0];
-currentDescription = (String) currentDesc.get('description');
-currentIcon = (String) currentDesc.get('icon');
 
 currentIconUrl = 'http://openweathermap.org/img/wn/' + currentIcon +'@2x.png';
-Map<String,Object> forecastWeatherData = (Map<String,Object>) dataList[10];
-Map<String,Object> forecastMainData = (Map<String,Object>) forecastWeatherData.get('main');
-forecastTemp = (Decimal) forecastMainData.get('temp');
-List<Object> forecastWeath = (List<Object>) forecastWeatherData.get('weather');
-Map<String,Object> forecastDesc = (Map<String,Object>) forecastWeath[0];
-forecastDescription = (String) forecastDesc.get('description');
-forecastIcon = (String) forecastDesc.get('icon');
-
 forecastIconUrl = 'http://openweathermap.org/img/wn/' + forecastIcon +'@2x.png';
 
             acc.WeatherCity__c = cityName;
@@ -77,7 +59,8 @@ forecastIconUrl = 'http://openweathermap.org/img/wn/' + forecastIcon +'@2x.png';
             acc.ForecastWeatherDescription__c = forecastDescription;
             acc.ForecastWeatherTemp__c = forecastTemp;
             acc.ForecastWeatherIcon__c = forecastIconUrl;
-            
+            //should we change isUpdatedToday__C value to 'true' here?
+            // acc.isUpdatedToday__C = 'true';
             }catch (Exception e){
                     System.debug(''+e);
             }
@@ -93,7 +76,7 @@ forecastIconUrl = 'http://openweathermap.org/img/wn/' + forecastIcon +'@2x.png';
             acc.ForecastWeatherDescription__c = upd.ForecastWeatherDescription__c;
             acc.ForecastWeatherTemp__c = upd.ForecastWeatherTemp__c;
             acc.ForecastWeatherIcon__c = upd.ForecastWeatherIcon__c;
-            
+            // acc.isUpdatedToday__C = upd.isUpdatedToday__C;
         }
     }
 }
@@ -103,8 +86,41 @@ updatedAcc.add(acc);
 update updatedAcc;
 }
     
-global void finish (Database.BatchableContext bc){
+public void finish (Database.BatchableContext bc){
+    List <Event> eventsWithAcc = [SELECT Id,subject,What.Type,whatId FROM Event
+    WHERE What.Type IN ('Account') AND Subject='Meeting' AND (StartDateTime = TODAY OR StartDateTime = TOMORROW)];
+    Date todayDate = Date.TODAY();
+    Date tomorrowDate = Date.TODAY()+1;
+    Id salesRepId;
+    String salesRepEmail;
     
+    List<Id> accountsIdTodayEvents = EventManager.getRelatedAccountsByEventDate (eventsWithAcc, todayDate);
+    List<Id> accountsIdTomorrowEvents = EventManager.getRelatedAccountsByEventDate (eventsWithAcc, tomorrowDate);
+   
+    List<Account> accountsDetailsWithTodayEvents = [SELECT Id, SalesRepId__c, CurrentWeatherDescription__c, CurrentWeatherTemp__c, ForecastWeatherDescription__c,ForecastWeatherTemp__c FROM Account WHERE Id IN :accountsIdTodayEvents];
+    List<Account> accountsDetailsWithTomorrowEvents = [SELECT Id, SalesRepId__c, CurrentWeatherDescription__c, CurrentWeatherTemp__c, ForecastWeatherDescription__c,ForecastWeatherTemp__c FROM Account WHERE Id IN :accountsIdTomorrowEvents];
+
+    List<User> salesRepList = [SELECT Id, Email, UserRole.Name FROM User WHERE UserRole.Name='Sales Representative'];
+
+    for (Account a : accountsDetailsWithTodayEvents){
+        if((a.CurrentWeatherDescription__c.contains('thunderstorm') || a.CurrentWeatherDescription__c.contains('heavy')) || (a.CurrentWeatherTemp__c > 30 || a.CurrentWeatherTemp__c <-10)){
+            salesRepId = a.SalesRepId__c;
+            salesRepEmail = UserDetail.getUserEmailById(salesRepId, salesRepList);
+            if(!salesRepEmail.equals(' ')){
+            EmailManager.sendMail (salesRepEmail, 'Weather warning', 'Please be careful with your today meeting with client: ' +a.Name + 'Bad weather conditions may occurs');
+            }
+        }
+    }
+    
+    for(Account c : accountsDetailsWithTomorrowEvents){
+        if((c.ForecastWeatherDescription__c.contains('thunderstorm') || c.ForecastWeatherDescription__c.contains('heavy')) || (c.ForecastWeatherTemp__c >30 || c.ForecastWeatherTemp__c <-10)){
+            salesRepId = c.SalesRepId__c;
+          salesRepEmail = UserDetail.getUserEmailById(salesRepId, salesRepList);
+          if(!salesRepEmail.equals(' ')){
+            EmailManager.sendMail (salesRepEmail, 'Weather warning', 'Please be careful with your tomorrow meeting with client: ' +c.Name + 'Bad weather conditions may occurs');
+          }
+        }
+    }
 }
 
 }
