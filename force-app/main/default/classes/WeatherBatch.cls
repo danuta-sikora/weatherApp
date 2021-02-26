@@ -44,10 +44,17 @@ public void execute(Database.BatchableContext bc, List<Account> scope) {
             HttpResponse response = http.send(request);
 
 JSONParser parser = JSON.createParser(response.getBody());
-
 JSON2Apex jsonResult = new JSON2Apex (parser);
+
 cityName = jsonResult.city.name;
 
+currentTemp = jsonResult.list_Z.get(2).Main.temp;
+currentDescription = jsonResult.list_Z.get(2).Weather.get(0).description;
+currentIcon = jsonResult.List_Z.get(2).Weather.get(0).icon;
+
+forecastTemp = jsonResult.list_Z.get(10).Main.temp;
+forecastDescription = jsonResult.list_Z.get(10).Weather.get(0).description;
+forecastIcon = jsonResult.List_Z.get(10).Weather.get(0).icon;
 
 currentIconUrl = 'http://openweathermap.org/img/wn/' + currentIcon +'@2x.png';
 forecastIconUrl = 'http://openweathermap.org/img/wn/' + forecastIcon +'@2x.png';
