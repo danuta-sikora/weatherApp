@@ -1,5 +1,6 @@
 public class WeatherBatch implements Database.Batchable<sObject>, Database.Stateful, Database.AllowsCallouts {
-private final String query = 'SELECT Id, BillingCity, WeatherCity__c, CurrentWeatherDescription__c, CurrentWeatherTemp__c, CurrentWeatherIcon__c, ForecastWeatherDescription__c, ForecastWeatherTemp__c, ForecastWeatherIcon__c FROM Account WHERE BillingCity != null AND isUpdatedToday=\"false"\ LIMIT 10';
+    String falseValue='false';
+private final String query = 'SELECT Id, BillingCity, WeatherCity__c, CurrentWeatherDescription__c, CurrentWeatherTemp__c, CurrentWeatherIcon__c, ForecastWeatherDescription__c, ForecastWeatherTemp__c, ForecastWeatherIcon__c FROM Account WHERE BillingCity != null AND isUpdatedToday__c LIKE :falseValue LIMIT 10';
 
 public Database.QueryLocator start(Database.BatchableContext bc){
   
@@ -37,7 +38,7 @@ public void execute(Database.BatchableContext bc, List<Account> scope) {
         try {
         HttpRequest request = new HttpRequest();
             Http http = new Http();
-            request.setEndpoint('callout:forecast_endpoint'+location);
+            request.setEndpoint('callout:forecast_endpoint/'+location);
             request.setHeader('x-rapidapi-key', '{!$Credential.Password}');
             request.setHeader('x-rapidapi-host', '{!$Credential.UserName}');
             request.setMethod('GET');
