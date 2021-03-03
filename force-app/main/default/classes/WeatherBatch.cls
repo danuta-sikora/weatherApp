@@ -1,6 +1,6 @@
 public class WeatherBatch implements Database.Batchable<sObject>, Database.Stateful, Database.AllowsCallouts {
-    String falseValue='false';
-private final String query = 'SELECT Id, BillingCity, WeatherCity__c, CurrentWeatherDescription__c, CurrentWeatherTemp__c, CurrentWeatherIcon__c, ForecastWeatherDescription__c, ForecastWeatherTemp__c, ForecastWeatherIcon__c FROM Account WHERE BillingCity != null AND isUpdatedToday__c LIKE :falseValue LIMIT 10';
+    
+private final String query = 'SELECT Id, BillingCity, WeatherCity__c, CurrentWeatherDescription__c, CurrentWeatherTemp__c, CurrentWeatherIcon__c, ForecastWeatherDescription__c, ForecastWeatherTemp__c, ForecastWeatherIcon__c FROM Account WHERE BillingCity != null AND updateWeatherDate__c != TODAY LIMIT 10';
 
 public Database.QueryLocator start(Database.BatchableContext bc){
   
@@ -38,24 +38,38 @@ public void execute(Database.BatchableContext bc, List<Account> scope) {
         try {
         HttpRequest request = new HttpRequest();
             Http http = new Http();
-            request.setEndpoint('callout:forecast_endpoint/'+location);
+            request.setEndpoint('callout:forecast_endpoint/forecast?q='+location);
             request.setHeader('x-rapidapi-key', '{!$Credential.Password}');
             request.setHeader('x-rapidapi-host', '{!$Credential.UserName}');
             request.setMethod('GET');
             HttpResponse response = http.send(request);
 
+// JSON2Apex.List_Z parser = (JSON2Apex.List_Z) JSON.deserialize(response.getBody(), JSON2Apex.List_Z.class);
 JSONParser parser = JSON.createParser(response.getBody());
 JSON2Apex jsonResult = new JSON2Apex (parser);
 
+// JSON2APex.City cityP = (JSON2Apex.City) JSON.deserialize(response.getBody(), JSON2Apex.City.class);
+// cityName = cityP.name;
 cityName = jsonResult.city.name;
+Date todayD = Date.TODAY();
+Date tomorrowD = Date.TODAY()+1;
+String timeW = '12:00:00';
+String todayTxt = DateTime.newInstance(todayD.year(),todayD.month(),todayD.day()).format('YYYY-MM-dd')+' ' +timeW;
+String tomorrowTxt = DateTime.newInstance(tomorrowD.year(),tomorrowD.month(),tomorrowD.day()).format('YYYY-MM-dd')+' ' +timeW;
 
-currentTemp = jsonResult.list_Z.get(2).Main.temp;
-currentDescription = jsonResult.list_Z.get(2).Weather.get(0).description;
-currentIcon = jsonResult.List_Z.get(2).Weather.get(0).icon;
-
-forecastTemp = jsonResult.list_Z.get(10).Main.temp;
-forecastDescription = jsonResult.list_Z.get(10).Weather.get(0).description;
-forecastIcon = jsonResult.List_Z.get(10).Weather.get(0).icon;
+for(Integer i=0; i<jsonResult.List_Z.size(); i++){
+    String t = jsonResult.List_Z.get(i).dt_txt;
+    
+    if(t.equals(todayTxt)){
+        currentTemp = jsonResult.list_Z.get(i).Main.temp;
+        currentDescription = jsonResult.list_Z.get(i).Weather.get(0).description;
+        currentIcon = jsonResult.List_Z.get(i).Weather.get(0).icon;
+    } else if (t.equals (tomorrowTxt)){
+        forecastTemp = jsonResult.list_Z.get(i).Main.temp;
+        forecastDescription = jsonResult.list_Z.get(i).Weather.get(0).description;
+        forecastIcon = jsonResult.List_Z.get(i).Weather.get(0).icon;
+    }
+}
 
 currentIconUrl = 'http://openweathermap.org/img/wn/' + currentIcon +'@2x.png';
 forecastIconUrl = 'http://openweathermap.org/img/wn/' + forecastIcon +'@2x.png';
@@ -67,8 +81,8 @@ forecastIconUrl = 'http://openweathermap.org/img/wn/' + forecastIcon +'@2x.png';
             acc.ForecastWeatherDescription__c = forecastDescription;
             acc.ForecastWeatherTemp__c = forecastTemp;
             acc.ForecastWeatherIcon__c = forecastIconUrl;
-            //should we change isUpdatedToday__C value to 'true' here?
-            // acc.isUpdatedToday__C = 'true';
+            acc.updateWeatherDate__c = Date.TODAY();
+
             }catch (Exception e){
                     System.debug(''+e);
             }
@@ -84,7 +98,7 @@ forecastIconUrl = 'http://openweathermap.org/img/wn/' + forecastIcon +'@2x.png';
             acc.ForecastWeatherDescription__c = upd.ForecastWeatherDescription__c;
             acc.ForecastWeatherTemp__c = upd.ForecastWeatherTemp__c;
             acc.ForecastWeatherIcon__c = upd.ForecastWeatherIcon__c;
-            // acc.isUpdatedToday__C = upd.isUpdatedToday__C;
+            acc.updateWeatherDate__c = upd.updateWeatherDate__c;
         }
     }
 }
